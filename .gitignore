@@ -1,0 +1,8 @@
+user-data.txt
+*.env
+.env
+__pycache__/
+*.pyc
+*.db
+*.sqlite
+*.sqlite3
