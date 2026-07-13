@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS flight_offers (
     -- when/how this row was captured
     observed_at TEXT NOT NULL,             -- ISO8601 timestamp, when this offer was fetched
     source TEXT NOT NULL,                  -- e.g. 'kiwi_mcp', 'serpapi'
+    source_offer_id TEXT,                  -- the source's own id for this itinerary, if it has one
 
     -- the date range this offer was found within (denormalized per-row,
     -- so no join is needed to know what a given search run was looking for)
@@ -19,9 +20,12 @@ CREATE TABLE IF NOT EXISTS flight_offers (
     -- outbound leg
     outbound_departure TEXT NOT NULL,      -- ISO8601 datetime
     outbound_arrival TEXT NOT NULL,
-    outbound_airline TEXT NOT NULL,
+    outbound_airline TEXT NOT NULL,        -- comma-separated carrier codes if the leg has multiple segments
     outbound_stops INTEGER NOT NULL DEFAULT 0,
-    outbound_layover_airports TEXT,        -- comma-separated IATA codes, NULL if direct
+    outbound_layover_airports TEXT,        -- comma-separated IATA codes of INTERMEDIATE stops only
+                                            -- (excludes origin/destination, which are their own columns);
+                                            -- NULL if direct
+    outbound_duration_seconds INTEGER,     -- total leg duration incl. layovers, if the source provides it
 
     -- return leg (all NULL if one-way)
     return_departure TEXT,
@@ -29,6 +33,7 @@ CREATE TABLE IF NOT EXISTS flight_offers (
     return_airline TEXT,
     return_stops INTEGER,
     return_layover_airports TEXT,
+    return_duration_seconds INTEGER,
 
     trip_type TEXT NOT NULL CHECK (trip_type IN ('one_way', 'round_trip')),
 

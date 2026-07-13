@@ -32,18 +32,26 @@ the agent:
   (one-way/round-trip, origin/destination, dates, passengers, cabin class)
   with results in local currency and booking links. Connected via the
   Responses API's remote MCP tool support. Note: prototype status means it
-  could change or go away — if it becomes unreliable, fall back to a direct
-  Amadeus or Kiwi Tequila API integration (same custom-tool pattern, just
-  with an API key to manage).
+  could change or go away — if it becomes unreliable, fall back to SerpAPI's
+  Google Flights data, called as a plain REST custom tool (not via MCP, since
+  the MCP wrappers for it are local/stdio-only). Amadeus is not viable as a
+  fallback — its free self-service API shut down July 17, 2026.
 - **Search strategy**: the agent plans and issues multiple flight searches
   across the given date range (not a single fixed date pair) — e.g. trying
   different outbound/return combinations — and tracks all results.
 - **Persistence**: every flight offer found is saved to SQLite (custom
   client-side tool, since the MCP server only searches — it doesn't persist
-  anything). One row per (flight offer, date searched), including at least
-  price, airline, outbound/return dates, layovers, and the timestamp the
-  price was observed. This is what lets "cheapest found" be computed across
-  the whole date range and lets price history accumulate over time.
+  anything). Schema in `schema.sql` — one flat, append-only `flight_offers`
+  table (no upserts, every search run just inserts new rows), covering
+  route, outbound/return legs (each with its own airline, stops, layover
+  airports), trip type, price + currency, cabin class, booking URL, and
+  `observed_at`/`source` so price history accumulates over time and multiple
+  data sources can coexist.
+- **Currency**: all stored/compared prices are standardized to **USD**. The
+  agent requests USD explicitly from whatever data source it's using
+  (confirm the Kiwi MCP tool actually accepts a currency param when we
+  inspect its schema — if it doesn't, convert before storing). Without this,
+  "cheapest" comparisons across rows aren't trustworthy.
 - **Operating mode (current)**: one-shot — run a command with a date range,
   the agent searches, stores results, and reports the cheapest option found
   in that run. A scheduled/autonomous monitoring mode (e.g. daily cron,
