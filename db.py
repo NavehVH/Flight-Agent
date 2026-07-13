@@ -73,3 +73,19 @@ def insert_offers(conn: sqlite3.Connection, offers: list[dict]) -> int:
     conn.executemany(sql, rows)
     conn.commit()
     return len(rows)
+
+
+def record_run(conn: sqlite3.Connection, run_stats: dict) -> None:
+    """Write one row to agent_runs. Called once per run, in a `finally`
+    block, so cost/behavior is recorded even if the run errors out or hits
+    a guardrail — that's exactly the case you most want a record of.
+    """
+    columns = [
+        "started_at", "finished_at", "model", "iterations", "search_calls",
+        "offers_stored", "input_tokens", "output_tokens",
+        "estimated_cost_usd", "stop_reason", "report_delivered",
+    ]
+    placeholders = ", ".join("?" for _ in columns)
+    sql = f"INSERT INTO agent_runs ({', '.join(columns)}) VALUES ({placeholders})"
+    conn.execute(sql, tuple(run_stats.get(col) for col in columns))
+    conn.commit()

@@ -58,3 +58,21 @@ CREATE INDEX IF NOT EXISTS idx_flight_offers_observed_at
 
 CREATE INDEX IF NOT EXISTS idx_flight_offers_price
     ON flight_offers (price);
+
+-- One row per agent run — cost/behavior telemetry, independent of whether
+-- the run found flights. Written once at the end of every run (including
+-- runs that error out or hit a guardrail), so cost is auditable over time.
+CREATE TABLE IF NOT EXISTS agent_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at TEXT NOT NULL,
+    finished_at TEXT NOT NULL,
+    model TEXT NOT NULL,               -- resolved model id, e.g. 'gpt-5.6-sol'
+    iterations INTEGER NOT NULL,
+    search_calls INTEGER NOT NULL,
+    offers_stored INTEGER NOT NULL,
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    estimated_cost_usd REAL NOT NULL,
+    stop_reason TEXT NOT NULL,         -- 'delivered' | 'max_iterations' | 'budget_exceeded' | 'api_error'
+    report_delivered INTEGER NOT NULL DEFAULT 0
+);
